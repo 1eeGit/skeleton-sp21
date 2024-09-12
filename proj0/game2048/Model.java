@@ -1,11 +1,15 @@
 package game2048;
 
+import org.junit.Test;
+
+import java.awt.*;
+import java.util.ArrayList;
 import java.util.Formatter;
+import java.util.List;
 import java.util.Observable;
 
-
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author Li
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -114,12 +118,63 @@ public class Model extends Observable {
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
 
-        checkGameOver();
-        if (changed) {
-            setChanged();
+        /*
+        1. check per col
+        2. from top to bottom: row 3 to 0
+        3. check each tile with its (row-1) below
+        4. if board.move -> true => merge
+        5. add score
+         */
+        board.setViewingPerspective(side);
+        Integer score = 0;
+        for (int j = 0; j < 4; j++) {
+
+            for (int i = 3; i > 0; i--) {
+
+                Tile above = tile(j,i);
+                Tile below = tile(j,i-1);
+                if (below != null && above !=null) {// top not null
+                    if(below.value() == above.value()){// 2nd not null
+                        if(board.move(j, i-1, below)){
+                            changed = true;
+                            score += 2 * below.value();
+                        }
+                    }
+                }else if (below != null && above == null){
+                    board.move(j,i,below);
+                    changed = true;}
+
+
+                // board.setViewingPerspective(north); // back to ori view
+                checkGameOver();
+                if (changed) {
+                    setChanged();
+                }
+
+            }
         }
         return changed;
     }
+
+
+    /*
+    takes in row and value
+    if neighbor is empty or same value, return true -> will move
+    empty: return (new row, ori)
+
+    same: return (new, ori*2)
+    => use board.move() to add score
+     */
+            /*
+    public Boolean compare_with_neighbor(Integer first, Integer second){
+        boolean bl = false;
+        if(first == second) bl = true;
+
+        return bl;
+    }
+
+             */
+
 
     /** Checks if the game is over and sets the gameOver variable
      *  appropriately.
@@ -137,8 +192,22 @@ public class Model extends Observable {
      *  Empty spaces are stored as null.
      * */
     public static boolean emptySpaceExists(Board b) {
-        // TODO: Fill in this function.
-        return false;
+        boolean result = false;
+        /* after checking the length,
+         * still need to check foreach tile whether it is null
+         */
+        if (b.size() != 16 ) {
+            for(int i=0; i<4; i++){
+                for(int j=0; j<4; j++){
+                    if(b.tile(i,j) == null) {
+                        // System.out.println(b.tile(i,j));
+                        result = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return result;
     }
 
     /**
@@ -147,8 +216,17 @@ public class Model extends Observable {
      * given a Tile object t, we get its value with t.value().
      */
     public static boolean maxTileExists(Board b) {
-        // TODO: Fill in this function.
-        return false;
+        boolean result = false;
+
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                if (b.tile(i, j) != null && b.tile(i, j).value() == MAX_PIECE) {
+                    result = true;
+                    break;
+                }
+            }
+        }
+        return result;
     }
 
     /**
@@ -159,8 +237,40 @@ public class Model extends Observable {
      */
     public static boolean atLeastOneMoveExists(Board b) {
         // TODO: Fill in this function.
-        return false;
+        boolean result = false;
+
+        if (maxTileExists(b)) { // reach 2048
+            result = true;
+        } else {
+            if (emptySpaceExists(b)) { // at least one empty space exists
+                result = true;
+            } else { // no empty space
+                for (int i = 1; i < 3; i++) {
+                    for (int j = 0; j < 4; j++) {
+                        // check whether there are same tiles next to each other
+                        // loop through all the tiles
+
+                        // for col 1 & 2, we check its left and right values
+                        // [1,3] ~ [1,0]: check left -> but in code is check both ways
+                        // [2,3] ~ [2,0]: check left and right
+                        boolean col_check = (b.tile(i, j).value() == b.tile(i-1, j).value()) ||
+                                (b.tile(i, j).value() == b.tile(i+1, j).value());
+
+                        // for row 1 & 2, we check its up and down values
+                        boolean row_check = (b.tile(j, i).value() == b.tile(j, i-1).value()) ||
+                                (b.tile(j, i).value() == b.tile(j, i+1).value());
+
+                        if (col_check || row_check ) result = true;
+
+                    }
+                }
+            }
+        }
+        return result;
     }
+
+
+
 
 
     @Override
